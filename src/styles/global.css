@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  transition: background-color 0.5s, color 0.5s;
+}
+
+.light-theme {
+  --background: white;
+  --text: black;
+  --placeholder: #a0aec0; /* gray-500 */
+  --control-bg: #e2e8f0; /* gray-200 */
+  --control-hover-bg: #cbd5e0; /* gray-300 */
+}
+
+.dark-theme {
+  --background: black;
+  --text: white;
+  --placeholder: #4a5568; /* gray-600 */
+  --control-bg: #2d3748; /* gray-800 */
+  --control-hover-bg: #4a5568; /* gray-700 */
+}
+
+body {
+  background-color: var(--background);
+  color: var(--text);
+}
+
+.bg-transparent {
+  background-color: transparent;
+}
+
+.placeholder-gray-400::placeholder {
+  color: var(--placeholder);
+}
+
+.placeholder-gray-600::placeholder {
+  color: var(--placeholder);
+}
+
+.bg-gray-100 {
+  background-color: var(--control-bg);
+}
+
+.bg-gray-200 {
+  background-color: var(--control-bg);
+}
+
+.hover\:bg-gray-300:hover {
+  background-color: var(--control-hover-bg);
+}
+
+.bg-gray-800 {
+  background-color: var(--control-bg);
+}
+
+.hover\:bg-gray-700:hover {
+  background-color: var(--control-hover-bg);
+}
+
+.bg-gray-900 {
+  background-color: #1a202c; /* gray-900 */
+}
+
+.text-black {
+  color: var(--text);
+}
+
+.text-white {
+  color: var(--text);
+}
