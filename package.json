@@ -6,6 +6,7 @@
   "proxy": "http://localhost:5000",
   "scripts": {
     "start": "react-scripts start",
+    "build": "npm run build:css && react-scripts build",
     "server": "node -r dotenv/config backend/server.js",
     "build:css": "tailwindcss build src/styles/global.css -o public/styles.css",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -17,11 +18,11 @@
     "@google/generative-ai": "^0.24.1",
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
-    "groq-sdk": "^0.5.0",
-    "lucide-react": "^0.395.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-scripts": "5.0.1"
+    "groq-sdk": "^0.29.0",
+    "lucide-react": "^0.525.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-scripts": "^5.0.1"
   },
   "browserslist": {
     "production": [
@@ -34,5 +35,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "tailwindcss": "^4.1.11"
   }
 }
