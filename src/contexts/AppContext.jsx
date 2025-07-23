@@ -10,8 +10,30 @@ export const AppProvider = ({ children }) => {
   const [showSigil, setShowSigil] = useState(true);
   const [sigilOpacity, setSigilOpacity] = useState(0.15);
   const [showInfo, setShowInfo] = useState(false);
+  const [commentary, setCommentary] = useState('');
+  const [loadingCommentary, setLoadingCommentary] = useState(false);
 
   const toggleDarkMode = () => setDarkMode(prevMode => !prevMode);
+
+  const getCommentary = async () => {
+    setLoadingCommentary(true);
+    try {
+      const response = await fetch('/api/commentary', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text, demonId: selectedDemon.number }),
+      });
+      const data = await response.json();
+      setCommentary(data.commentary);
+    } catch (error) {
+      console.error('Error fetching commentary:', error);
+      setCommentary('Error fetching commentary.');
+    } finally {
+      setLoadingCommentary(false);
+    }
+  };
 
   const value = useMemo(() => ({
     selectedDemon,
@@ -27,7 +49,12 @@ export const AppProvider = ({ children }) => {
     showInfo,
     setShowInfo,
     demons,
-  }), [selectedDemon, text, darkMode, showSigil, sigilOpacity, showInfo]);
+    commentary,
+    setCommentary,
+    loadingCommentary,
+    setLoadingCommentary,
+    getCommentary,
+  }), [selectedDemon, text, darkMode, showSigil, sigilOpacity, showInfo, commentary, loadingCommentary]);
 
   return (
     <AppContext.Provider value={value}>

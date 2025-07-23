@@ -1,137 +1,140 @@
-# Architectural Plan: Goetic Word Processor Refactoring
+# Architectural Plan: AI-Powered Demonic Commentary
 
-## 1. Introduction
+This document outlines the architecture for a new feature that provides AI-powered commentary on user's writing, with each of the 72 demons from the Ars Goetia offering a unique perspective.
 
-This document outlines a comprehensive architectural plan to refactor the `GoeticWordProcessor` application. The current implementation is a single, large React component. The goal of this refactoring is to improve modularity, maintainability, scalability, and overall code quality by breaking it down into smaller components, separating data and logic, and adopting more robust patterns for styling and state management.
+## 1. Backend File Structure
 
-## 2. Proposed File Structure
-
-A more organized file structure will make the codebase easier to navigate and manage.
+To keep the backend and frontend code separate and organized, we will create a new `backend` directory. This directory will contain all the server-side logic for the new feature.
 
 ```
-/src
-|-- /components
-|   |-- /ui
-|   |   |-- Button.jsx
-|   |   |-- Select.jsx
-|   |   |-- RangeSlider.jsx
-|   |-- ControlPanel.jsx
-|   |-- DemonInfoPopup.jsx
-|   |-- DemonSelector.jsx
-|   |-- Editor.jsx
-|   |-- Header.jsx
-|   |-- SigilDisplay.jsx
-|   |-- StatusBar.jsx
-|-- /constants
-|   |-- demons.js
-|   |-- sigils.js
-|-- /contexts
-|   |-- AppContext.jsx
-|-- /hooks
-|   |-- useAutoSave.js
-|   |-- useWordCount.js
-|-- /styles
-|   |-- global.css
-|   |-- theme.js
-|   |-- components.module.css
+/backend
+|-- /config
+|   |-- keys.js
+|-- /routes
+|   |-- api
+|       |-- commentary.js
+|-- /services
+|   |-- gemini.js
+|   |-- llama.js
 |-- /utils
-|   |-- fileExporter.js
-|   |-- gematria.js
-|-- App.jsx
-|-- index.js
-/public
-|-- /sigils
-|   |-- 1.svg
-|   |-- 2.svg
-|   |-- ...
+|   |-- errorHandler.js
+|-- server.js
 ```
 
-## 3. Component Structure
+**File Descriptions:**
 
-The main `GoeticWordProcessor` component will be broken down into smaller, single-responsibility components.
+*   **`server.js`**: The main entry point for the Node.js server. It will handle server configuration, middleware, and API routing.
+*   **`/config/keys.js`**: This file will manage the API keys for the Gemini and LLaMA services. It will fetch the keys from environment variables to keep them secure.
+*   **`/routes/api/commentary.js`**: This file will define the API endpoint for generating commentary. It will handle incoming requests, validate the payload, and call the appropriate service to generate the commentary.
+*   **`/services/gemini.js`**: This file will contain the logic for interacting with the Gemini API. It will be responsible for creating the prompt, sending the request, and handling the response.
+*   **`/services/llama.js`**: This file will contain the logic for interacting with the LLaMA API. It will serve as a fallback if the Gemini API is unavailable.
+*   **`/utils/errorHandler.js`**: A utility file for handling errors throughout the backend.
+
+## 2. Data Flow Diagram
+
+The following diagram illustrates how a request for commentary is processed, from the user's initial action to the final display of the AI-generated text.
 
 ```mermaid
-graph TD
-    App --> Header;
-    App --> Editor;
-    App --> StatusBar;
-    App --> SigilDisplay;
-    App --> DemonInfoPopup;
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant Backend
+    participant Gemini API
+    participant LLaMA API
 
-    Header --> ControlPanel;
-    ControlPanel --> DemonSelector;
-    ControlPanel --> ThemeToggle[Theme Toggle Button];
-    ControlPanel --> SigilControls[Sigil Toggle & Opacity];
-    ControlPanel --> ExportButton;
+    User->>Frontend: Clicks "Get Commentary"
+    Frontend->>Backend: POST /api/commentary
+    Backend->>Backend: Fetch demon personality
+    alt Gemini API is available
+        Backend->>Gemini API: Request commentary
+        Gemini API-->>Backend: Return commentary
+    else LLaMA API is fallback
+        Backend->>LLaMA API: Request commentary
+        LLaMA API-->>Backend: Return commentary
+    end
+    Backend-->>Frontend: Return commentary
+    Frontend->>User: Display commentary
 ```
 
-### Component Breakdown:
+## 3. API Design
 
-*   **`App.jsx` (Container):** The main application container. It will manage global state via `AppContext` and compose the other components.
-*   **`Header.jsx`:** A simple component to hold the top part of the UI, including the `ControlPanel`.
-*   **`ControlPanel.jsx`:** Manages all user controls, such as demon selection, theme, and sigil visibility.
-*   **`DemonSelector.jsx`:** A dedicated component for the demon dropdown and the randomizer button.
-*   **`Editor.jsx`:** The main text area for user input. It will be a controlled component, getting its value and `onChange` handler from the `AppContext`.
-*   **`StatusBar.jsx`:** The bottom bar displaying word count, Gematria, and save status.
-*   **`SigilDisplay.jsx`:** Responsible for rendering the background sigil. It will get the selected demon and visibility status from context.
-*   **`DemonInfoPopup.jsx`:** The popup that appears to show information about the selected demon.
+A new endpoint will be created to handle requests for commentary.
 
-## 4. Data Management
+**Endpoint:** `POST /api/commentary`
 
-The hardcoded `demons` and `sigilPaths` data will be externalized for better scalability and organization.
+**Request Body:**
 
-*   **Demon Data:** The `demons` array will be moved to `src/constants/demons.js` and exported as a constant. In the future, this could be changed to a function that fetches data from a JSON file or an API without changing the components that use it.
-*   **Sigil Data:** The `sigilPaths` object will be deprecated. Instead, we will use a convention-based approach. Each demon's sigil will be an individual SVG file named after the demon's number (e.g., `1.svg`, `2.svg`) and placed in the `public/sigils/` directory. This makes it easy to add or change sigils without touching the code. The `SigilDisplay` component will construct the path to the image dynamically.
+```json
+{
+  "demonId": 1,
+  "text": "The user's writing to be analyzed."
+}
+```
 
-## 5. Sigil Handling
+**Success Response (200 OK):**
 
-The current method of using SVG paths inside the component is not scalable.
+```json
+{
+  "commentary": "The AI-generated commentary from the demon."
+}
+```
 
-*   **Storage:** All sigils will be stored as individual SVG files in `public/sigils/`. This allows the browser to cache them and keeps them separate from the application logic.
-*   **Access & Rendering:** The `SigilDisplay` component will receive the `selectedDemon` object. It will then construct the image URL like `/sigils/${selectedDemon.number}.svg` and render it within an `<img>` tag or as a `background-image`. This is much more efficient and easier to maintain.
+**Error Response (400 Bad Request):**
 
-## 6. Styling
+```json
+{
+  "error": "Invalid request body. demonId and text are required."
+}
+```
 
-We will move away from inline styles and template literals with TailwindCSS classes towards a more structured approach.
+**Error Response (500 Internal Server Error):**
 
-*   **CSS Modules:** We will use CSS Modules for component-level styling. A file like `components.module.css` will contain styles for specific components, preventing class name collisions.
-*   **Global Styles:** A `src/styles/global.css` file will define base styles, fonts, and CSS variables.
-*   **Theme Management:** A `src/styles/theme.js` file will export theme objects for light and dark modes.
-    ```javascript
-    // src/styles/theme.js
-    export const lightTheme = {
-      background: '#ffffff',
-      text: '#000000',
-      // ...
-    };
+```json
+{
+  "error": "An error occurred while generating commentary."
+}
+```
 
-    export const darkTheme = {
-      background: '#000000',
-      text: '#ffffff',
-      // ...
-    };
-    ```
-    The `AppContext` will manage the current theme, and a top-level class on the `<body>` or root `<div>` will toggle the theme variables.
+## 4. API Key Management
 
-## 7. State Management & Code Quality
+To ensure the security of the Gemini and LLaMA API keys, we will use environment variables. This approach avoids hardcoding keys into the source code and keeps them safe from being exposed in the version control system.
 
-*   **Global State with Context:** To avoid prop drilling, we will introduce a global `AppContext` (`src/contexts/AppContext.jsx`). This context will provide:
-    *   `selectedDemon` and `setSelectedDemon`
-    *   `text` and `setText`
-    *   `darkMode` and `toggleDarkMode`
-    *   Other shared states like `showSigil`, `sigilOpacity`, etc.
-*   **Custom Hooks:** The logic for auto-saving and word counting will be extracted into custom hooks:
-    *   `useAutoSave(text, demonNumber)`: Handles the `localStorage` logic.
-    *   `useWordCount(text)`: Returns the current word count.
-    This will significantly clean up the main `App` component.
-*   **Utilities:** Helper functions that don't depend on component state will be moved to the `src/utils/` directory.
-    *   `fileExporter.js`: For the text export functionality.
-    *   `gematria.js`: For the Gematria calculation.
-*   **Accessibility (A11y):**
-    *   Add `aria-label` attributes to all icon buttons for screen readers.
-    *   Ensure proper focus management, especially for the popup.
-    *   Use semantic HTML elements where appropriate.
+A `.env` file will be created in the `backend` directory to store the keys during local development. This file will be added to the `.gitignore` file to prevent it from being committed to the repository.
 
-## 8. Conclusion
+**`.env` file:**
 
-This architectural plan transforms the `GoeticWordProcessor` from a single-file application into a structured, scalable, and maintainable React project. By separating concerns, we create a codebase that is easier to understand, test, and extend in the future.
+```
+GEMINI_API_KEY=your_gemini_api_key
+LLAMA_API_KEY=your_llama_api_key
+```
+
+The `config/keys.js` file will be responsible for reading these keys from the environment variables.
+
+**`backend/config/keys.js`:**
+
+```javascript
+module.exports = {
+  gemini: process.env.GEMINI_API_KEY,
+  llama: process.env.LLAMA_API_KEY,
+};
+```
+
+## 5. Frontend Integration
+
+To integrate the new commentary feature into the frontend, we will make the following changes:
+
+*   **`DemonSelector.jsx`**: A "Get Commentary" button will be added next to the demon selection dropdown. When clicked, this button will trigger a function to fetch the commentary from the backend.
+*   **`Editor.jsx`**: A new component will be created to display the commentary. This component will be positioned next to the main text editor, allowing the user to see the commentary as they write.
+*   **`AppContext.jsx`**: The `AppContext` will be updated to manage the state of the commentary, including the loading state and the commentary text itself.
+
+### New Component: `CommentaryDisplay.jsx`
+
+This new component will be responsible for displaying the AI-generated commentary. It will show a loading indicator while the commentary is being fetched and will display the commentary text once it's available.
+
+### User Interaction Flow
+
+1.  The user selects a demon from the `DemonSelector`.
+2.  The user clicks the "Get Commentary" button.
+3.  The frontend sends a request to the backend with the selected demon's ID and the current text from the editor.
+4.  While the request is in progress, a loading indicator is displayed in the `CommentaryDisplay` component.
+5.  When the backend returns the commentary, it is displayed in the `CommentaryDisplay` component.
